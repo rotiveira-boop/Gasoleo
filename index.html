@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registo de Combustível</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 16px; background-color: #f4f6f8; color: #333; }
+    h2 { text-align: center; color: #0056b3; }
+    .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 16px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; margin-top: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    button:hover { background-color: #218838; }
+    .btn-backup { background-color: #007bff; margin-top: 8px; }
+    .btn-restore { background-color: #6c757d; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }
+    th { background-color: #0056b3; color: white; }
+    .btn-delete { background-color: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>Registo de Abastecimentos</h2>
+
+  <div class="card">
+    <label>Data:</label>
+    <input type="date" id="data">
+
+    <label>Quilómetros (Km):</label>
+    <input type="number" id="kms" placeholder="Ex: 150000">
+
+    <label>Litros (L):</label>
+    <input type="number" step="0.01" id="litros" placeholder="Ex: 45.5">
+
+    <label>Valor Pago (€):</label>
+    <input type="number" step="0.01" id="valor" placeholder="Ex: 75.00">
+
+    <button onclick="adicionarRegisto()">ADICIONAR</button>
+  </div>
+
+  <div class="card">
+    <h3>Cópias de Segurança</h3>
+    <button class="btn-backup" onclick="exportarDados()">📥 Guardar Cópia (Descarregar)</button>
+    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarDados(event)">
+    <button class="btn-restore" onclick="document.getElementById('importFile').click()">📤 Restaurar Cópia (Carregar)</button>
+  </div>
+
+  <div class="card">
+    <h3>Histórico</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Km</th>
+          <th>Litros</th>
+          <th>€</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaRegistos"></tbody>
+    </table>
+  </div>
+
+  <script>
+    // Define a data de hoje por defeito no formulário
+    document.getElementById('data').valueAsDate = new Date();
+
+    function obterRegistos() {
+      const dados = localStorage.getItem('registos_gasoleo');
+      return dados ? JSON.parse(dados) : [];
+    }
+
+    function guardarRegistos(registos) {
+      localStorage.setItem('registos_gasoleo', JSON.stringify(registos));
+      desenharTabela();
+    }
+
+    function adicionarRegisto() {
+      const data = document.getElementById('data').value;
+      const kms = document.getElementById('kms').value;
+      const litros = document.getElementById('litros').value;
+      const valor = document.getElementById('valor').value;
+
+      if (!data || !kms || !litros || !valor) {
+        alert('Por favor, preencha todos os campos.');
+        return;
+      }
+
+      const novo = { data, kms, litros, valor };
+      const registos = obterRegistos();
+      registos.push(novo);
+
+      guardarRegistos(registos);
+
+      // Limpar campos
+      document.getElementById('kms').value = '';
+      document.getElementById('litros').value = '';
+      document.getElementById('valor').value = '';
+    }
+
+    function apagarRegisto(index) {
+      if (confirm('Tem a certeza que deseja apagar este registo?')) {
+        const registos = obterRegistos();
+        registos.splice(index, 1);
+        guardarRegistos(registos);
+      }
+    }
+
+    function desenharTabela() {
+      const registos = obterRegistos();
+      const tbody = document.getElementById('tabelaRegistos');
+      tbody.innerHTML = '';
+
+      registos.forEach((r, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.data}</td>
+          <td>${r.kms}</td>
+          <td>${r.litros}</td>
+          <td>${r.valor}€</td>
+          <td><button class="btn-delete" onclick="apagarRegisto(${index})">X</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Exportar dados em ficheiro JSON para salvaguarda
+    function exportarDados() {
+      const registos = obterRegistos();
+      if (registos.length === 0) {
+        alert('Não há registos para guardar.');
+        return;
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(registos));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "backup_gasoleo.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Importar dados a partir de ficheiro salvaguardado
+    function importarDados(event) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const registos = JSON.parse(e.target.result);
+          if (Array.isArray(registos)) {
+            guardarRegistos(registos);
+            alert('Dados restaurados com sucesso!');
+          } else {
+            alert('Ficheiro inválido.');
+          }
+        } catch (err) {
+          alert('Erro ao ler o ficheiro.');
+        }
+      };
+      reader.readAsText(event.target.files[0]);
+    }
+
+    // Carregar tabela ao abrir a página
+    desenharTabela();
+  </script>
+</body>
+</html>
