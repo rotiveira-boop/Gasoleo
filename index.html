@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registo de Combustível</title>
+  <title>Registo de Combustível Sincronizado</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 16px; background-color: #f4f6f8; color: #333; }
     h2 { text-align: center; color: #0056b3; }
@@ -12,17 +12,17 @@
     input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
     button { width: 100%; padding: 12px; margin-top: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
     button:hover { background-color: #218838; }
-    .btn-backup { background-color: #007bff; margin-top: 8px; }
-    .btn-restore { background-color: #6c757d; margin-top: 8px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }
     th { background-color: #0056b3; color: white; }
     .btn-delete { background-color: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; }
+    .status { text-align: center; font-size: 12px; color: #666; margin-bottom: 8px; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <h2>Registo de Abastecimentos</h2>
+  <div id="status" class="status">A carregar dados do GitHub...</div>
 
   <div class="card">
     <label>Data:</label>
@@ -37,14 +37,7 @@
     <label>Valor Pago (€):</label>
     <input type="number" step="0.01" id="valor" placeholder="Ex: 75.00">
 
-    <button onclick="adicionarRegisto()">ADICIONAR</button>
-  </div>
-
-  <div class="card">
-    <h3>Cópias de Segurança</h3>
-    <button class="btn-backup" onclick="exportarDados()">📥 Guardar Cópia (Descarregar)</button>
-    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarDados(event)">
-    <button class="btn-restore" onclick="document.getElementById('importFile').click()">📤 Restaurar Cópia (Carregar)</button>
+    <button id="btnAdicionar" onclick="adicionarRegisto()">ADICIONAR</button>
   </div>
 
   <div class="card">
@@ -64,20 +57,67 @@
   </div>
 
   <script>
-    // Define a data de hoje por defeito no formulário
+    // Configuração da Sincronização
+    const GIST_ID = '48deee124612291036e44a169fc65b33';
+    const GITHUB_TOKEN = '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';
+    const NOME_FICHEIRO_DADOS = 'dados_gasoleo.json';
+
     document.getElementById('data').valueAsDate = new Date();
 
-    function obterRegistos() {
-      const dados = localStorage.getItem('registos_gasoleo');
-      return dados ? JSON.parse(dados) : [];
+    async function carregarRegistos() {
+      const status = document.getElementById('status');
+      try {
+        const resp = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+        });
+        const gist = await resp.json();
+        
+        if (gist.files && gist.files[NOME_FICHEIRO_DADOS]) {
+          const conteudo = gist.files[NOME_FICHEIRO_DADOS].content;
+          status.innerText = 'Sincronizado com o GitHub ✓';
+          return JSON.parse(conteudo);
+        } else {
+          status.innerText = 'Pronto a utilizar (sem registos anteriores).';
+          return [];
+        }
+      } catch (e) {
+        status.innerText = 'Erro ao carregar dados do GitHub.';
+        return [];
+      }
     }
 
-    function guardarRegistos(registos) {
-      localStorage.setItem('registos_gasoleo', JSON.stringify(registos));
-      desenharTabela();
+    async function guardarRegistos(registos) {
+      const status = document.getElementById('status');
+      const btn = document.getElementById('btnAdicionar');
+      status.innerText = 'A guardar dados na nuvem...';
+      btn.disabled = true;
+
+      try {
+        await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            files: {
+              [NOME_FICHEIRO_DADOS]: {
+                content: JSON.stringify(registos, null, 2)
+              }
+            }
+          })
+        });
+        status.innerText = 'Sincronizado com o GitHub ✓';
+        desenharTabela(registos);
+      } catch (e) {
+        status.innerText = 'Erro ao guardar dados.';
+        alert('Ocorreu um erro ao guardar no GitHub.');
+      } finally {
+        btn.disabled = false;
+      }
     }
 
-    function adicionarRegisto() {
+    async function adicionarRegisto() {
       const data = document.getElementById('data').value;
       const kms = document.getElementById('kms').value;
       const litros = document.getElementById('litros').value;
@@ -89,27 +129,25 @@
       }
 
       const novo = { data, kms, litros, valor };
-      const registos = obterRegistos();
+      const registos = await carregarRegistos();
       registos.push(novo);
 
-      guardarRegistos(registos);
+      await guardarRegistos(registos);
 
-      // Limpar campos
       document.getElementById('kms').value = '';
       document.getElementById('litros').value = '';
       document.getElementById('valor').value = '';
     }
 
-    function apagarRegisto(index) {
+    async function apagarRegisto(index) {
       if (confirm('Tem a certeza que deseja apagar este registo?')) {
-        const registos = obterRegistos();
+        const registos = await carregarRegistos();
         registos.splice(index, 1);
-        guardarRegistos(registos);
+        await guardarRegistos(registos);
       }
     }
 
-    function desenharTabela() {
-      const registos = obterRegistos();
+    function desenharTabela(registos) {
       const tbody = document.getElementById('tabelaRegistos');
       tbody.innerHTML = '';
 
@@ -126,43 +164,10 @@
       });
     }
 
-    // Exportar dados em ficheiro JSON para salvaguarda
-    function exportarDados() {
-      const registos = obterRegistos();
-      if (registos.length === 0) {
-        alert('Não há registos para guardar.');
-        return;
-      }
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(registos));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "backup_gasoleo.json");
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    // Importar dados a partir de ficheiro salvaguardado
-    function importarDados(event) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const registos = JSON.parse(e.target.result);
-          if (Array.isArray(registos)) {
-            guardarRegistos(registos);
-            alert('Dados restaurados com sucesso!');
-          } else {
-            alert('Ficheiro inválido.');
-          }
-        } catch (err) {
-          alert('Erro ao ler o ficheiro.');
-        }
-      };
-      reader.readAsText(event.target.files[0]);
-    }
-
-    // Carregar tabela ao abrir a página
-    desenharTabela();
+    (async () => {
+      const registos = await carregarRegistos();
+      desenharTabela(registos);
+    })();
   </script>
 </body>
 </html>
