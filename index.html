@@ -1,173 +1,252 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registo de Combustível Sincronizado</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 16px; background-color: #f4f6f8; color: #333; }
-    h2 { text-align: center; color: #0056b3; }
-    .card { background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 16px; }
-    label { display: block; margin-top: 10px; font-weight: bold; }
-    input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; margin-top: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
-    button:hover { background-color: #218838; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 14px; }
-    th { background-color: #0056b3; color: white; }
-    .btn-delete { background-color: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; width: auto; font-size: 12px; }
-    .status { text-align: center; font-size: 12px; color: #666; margin-bottom: 8px; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Gestão de Gasóleo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; padding-bottom: 20px; min-height: 100vh; }
+        
+        /* Contentor principal */
+        .container { max-width: 600px; margin: 0 auto; padding: 0 12px; }
+
+        /* Painel Fixo no Topo */
+        .fixed-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: #0f172a;
+            padding-top: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #1e293b;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        h1 { text-align: center; color: #34d399; font-size: 20px; margin-bottom: 2px; }
+        p.subtitle { text-align: center; color: #94a3b8; font-size: 11px; margin-bottom: 10px; }
+        .status { text-align: center; font-size: 11px; color: #38bdf8; margin-bottom: 8px; font-weight: bold; }
+        
+        .card-form { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .full-width { grid-column: span 2; }
+        
+        label { display: block; font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: bold; margin-bottom: 2px; }
+        input { width: 100%; background-color: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: #fff; font-size: 13px; outline: none; }
+        input:focus { border-color: #34d399; }
+        
+        button.btn-submit { width: 100%; background: linear-gradient(to right, #10b981, #06b6d4); border: none; color: #0f172a; font-weight: bold; padding: 10px; border-radius: 6px; font-size: 13px; cursor: pointer; margin-top: 4px; text-transform: uppercase; }
+        button.btn-submit:active { transform: scale(0.98); }
+        button.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Lista de Registos Deslizante */
+        .list-container { padding-top: 12px; }
+
+        .entry-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+        
+        .entry-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 6px; font-size: 12px; }
+        .header-info { display: flex; gap: 8px; align-items: center; }
+        .entry-date { color: #94a3b8; font-weight: bold; }
+        .entry-price { color: #fbbf24; font-weight: bold; }
+        
+        .btn-del-icon { background: transparent; border: none; color: #f43f5e; font-size: 14px; cursor: pointer; padding: 2px 4px; line-height: 1; }
+        
+        .entry-details { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; }
+        .detail-item span { display: block; font-size: 9px; color: #94a3b8; text-transform: uppercase; }
+        .val-dist { color: #22d3ee; font-weight: bold; }
+        .val-media { color: #34d399; font-weight: bold; font-size: 13px; }
+        
+        .empty-msg { text-align: center; color: #64748b; padding: 30px 0; font-size: 13px; }
+    </style>
 </head>
 <body>
 
-  <h2>Registo de Abastecimentos</h2>
-  <div id="status" class="status">A carregar dados do GitHub...</div>
+    <!-- PAINEL FIXO NO TOPO -->
+    <div class="fixed-header">
+        <div class="container">
+            <h1>Gestão de Gasóleo</h1>
+            <p class="subtitle">Regista abastecimentos e vê a média</p>
+            <div id="status" class="status">A carregar dados do GitHub...</div>
 
-  <div class="card">
-    <label>Data:</label>
-    <input type="date" id="data">
+            <!-- Form -->
+            <div class="card-form">
+                <form id="fuelForm">
+                    <div class="form-grid">
+                        <div class="full-width">
+                            <label>Data</label>
+                            <input type="date" id="data" required>
+                        </div>
+                        <div>
+                            <label>KMs Totais</label>
+                            <input type="number" id="kms" placeholder="Ex: 152300" required>
+                        </div>
+                        <div>
+                            <label>Litros (L)</label>
+                            <input type="number" step="0.01" id="litros" placeholder="Ex: 45.5" required>
+                        </div>
+                        <div class="full-width">
+                            <label>Valor Pago (€)</label>
+                            <input type="number" step="0.01" id="valor" placeholder="Ex: 75.20" required>
+                        </div>
+                        <div class="full-width">
+                            <button type="submit" id="btnSubmit" class="btn-submit">ADICIONAR</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
-    <label>Quilómetros (Km):</label>
-    <input type="number" id="kms" placeholder="Ex: 150000">
+    <!-- LISTA DE REGISTOS -->
+    <div class="container list-container">
+        <div id="listaRegistos"></div>
+        <div id="emptyState" class="empty-msg">Nenhum registo guardado ainda.</div>
+    </div>
 
-    <label>Litros (L):</label>
-    <input type="number" step="0.01" id="litros" placeholder="Ex: 45.5">
+    <script>
+        (function() {
+            var form = document.getElementById('fuelForm');
+            var lista = document.getElementById('listaRegistos');
+            var emptyState = document.getElementById('emptyState');
+            var inputData = document.getElementById('data');
+            var status = document.getElementById('status');
+            var btnSubmit = document.getElementById('btnSubmit');
 
-    <label>Valor Pago (€):</label>
-    <input type="number" step="0.01" id="valor" placeholder="Ex: 75.00">
+            // Configuração da Nuvem (Gist)
+            var GIST_ID = '48deee124612291036e44a169fc65b33';
+            var GITHUB_TOKEN = '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';
+            var NOME_FICHEIRO = 'dados_gasoleo.json';
 
-    <button id="btnAdicionar" onclick="adicionarRegisto()">ADICIONAR</button>
-  </div>
+            inputData.valueAsDate = new Date();
+            var registos = [];
 
-  <div class="card">
-    <h3>Histórico</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Km</th>
-          <th>Litros</th>
-          <th>€</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
-      <tbody id="tabelaRegistos"></tbody>
-    </table>
-  </div>
-
-  <script>
-    // Configuração da Sincronização
-    const GIST_ID = '48deee124612291036e44a169fc65b33';
-    const GITHUB_TOKEN = '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';
-    const NOME_FICHEIRO_DADOS = 'dados_gasoleo.json';
-
-    document.getElementById('data').valueAsDate = new Date();
-
-    async function carregarRegistos() {
-      const status = document.getElementById('status');
-      try {
-        const resp = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-          headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-        });
-        const gist = await resp.json();
-        
-        if (gist.files && gist.files[NOME_FICHEIRO_DADOS]) {
-          const conteudo = gist.files[NOME_FICHEIRO_DADOS].content;
-          status.innerText = 'Sincronizado com o GitHub ✓';
-          return JSON.parse(conteudo);
-        } else {
-          status.innerText = 'Pronto a utilizar (sem registos anteriores).';
-          return [];
-        }
-      } catch (e) {
-        status.innerText = 'Erro ao carregar dados do GitHub.';
-        return [];
-      }
-    }
-
-    async function guardarRegistos(registos) {
-      const status = document.getElementById('status');
-      const btn = document.getElementById('btnAdicionar');
-      status.innerText = 'A guardar dados na nuvem...';
-      btn.disabled = true;
-
-      try {
-        await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `token ${GITHUB_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            files: {
-              [NOME_FICHEIRO_DADOS]: {
-                content: JSON.stringify(registos, null, 2)
-              }
+            async function carregar() {
+                try {
+                    var resp = await fetch('https://api.github.com/gists/' + GIST_ID, {
+                        headers: { 'Authorization': 'token ' + GITHUB_TOKEN }
+                    });
+                    var gist = await resp.json();
+                    if (gist.files && gist.files[NOME_FICHEIRO]) {
+                        registos = JSON.parse(gist.files[NOME_FICHEIRO].content);
+                        status.innerText = 'Sincronizado com o GitHub ✓';
+                    } else {
+                        status.innerText = 'Pronto a utilizar (sem registos).';
+                        registos = [];
+                    }
+                } catch(e) {
+                    status.innerText = 'Erro ao carregar do GitHub. A usar cópia local.';
+                    var localData = localStorage.getItem('registos_gasoleo_v3');
+                    if (localData) registos = JSON.parse(localData);
+                }
+                renderizar();
             }
-          })
-        });
-        status.innerText = 'Sincronizado com o GitHub ✓';
-        desenharTabela(registos);
-      } catch (e) {
-        status.innerText = 'Erro ao guardar dados.';
-        alert('Ocorreu um erro ao guardar no GitHub.');
-      } finally {
-        btn.disabled = false;
-      }
-    }
 
-    async function adicionarRegisto() {
-      const data = document.getElementById('data').value;
-      const kms = document.getElementById('kms').value;
-      const litros = document.getElementById('litros').value;
-      const valor = document.getElementById('valor').value;
+            async function guardar() {
+                registos.sort(function(a, b) { return a.kms - b.kms; });
+                
+                // Guardar no navegador por segurança
+                try {
+                    localStorage.setItem('registos_gasoleo_v3', JSON.stringify(registos));
+                } catch(e) {}
 
-      if (!data || !kms || !litros || !valor) {
-        alert('Por favor, preencha todos os campos.');
-        return;
-      }
+                status.innerText = 'A guardar na nuvem...';
+                btnSubmit.disabled = true;
 
-      const novo = { data, kms, litros, valor };
-      const registos = await carregarRegistos();
-      registos.push(novo);
+                try {
+                    await fetch('https://api.github.com/gists/' + GIST_ID, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': 'token ' + GITHUB_TOKEN,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            files: {
+                                [NOME_FICHEIRO]: { content: JSON.stringify(registos, null, 2) }
+                            }
+                        })
+                    });
+                    status.innerText = 'Sincronizado com o GitHub ✓';
+                } catch(e) {
+                    status.innerText = 'Erro ao guardar na nuvem!';
+                } finally {
+                    btnSubmit.disabled = false;
+                    renderizar();
+                }
+            }
 
-      await guardarRegistos(registos);
+            function renderizar() {
+                lista.innerHTML = '';
+                if (!registos || registos.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                emptyState.style.display = 'none';
 
-      document.getElementById('kms').value = '';
-      document.getElementById('litros').value = '';
-      document.getElementById('valor').value = '';
-    }
+                for (var i = 0; i < registos.length; i++) {
+                    var reg = registos[i];
+                    var distancia = '-';
+                    var media = 'Registo Base';
+                    var precoLitro = '-';
+                    var valorPagoStr = reg.valor ? Number(reg.valor).toFixed(2) + ' €' : '-';
 
-    async function apagarRegisto(index) {
-      if (confirm('Tem a certeza que deseja apagar este registo?')) {
-        const registos = await carregarRegistos();
-        registos.splice(index, 1);
-        await guardarRegistos(registos);
-      }
-    }
+                    if (reg.valor && reg.litros) {
+                        precoLitro = (reg.valor / reg.litros).toFixed(3) + ' €/L';
+                    }
 
-    function desenharTabela(registos) {
-      const tbody = document.getElementById('tabelaRegistos');
-      tbody.innerHTML = '';
+                    if (i > 0) {
+                        var anterior = registos[i - 1];
+                        var distCalc = reg.kms - anterior.kms;
+                        if (distCalc > 0) {
+                            distancia = distCalc + ' km';
+                            var calcMedia = (reg.litros * 100) / distCalc;
+                            media = calcMedia.toFixed(2) + ' L/100km';
+                        }
+                    }
 
-      registos.forEach((r, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${r.data}</td>
-          <td>${r.kms}</td>
-          <td>${r.litros}</td>
-          <td>${r.valor}€</td>
-          <td><button class="btn-delete" onclick="apagarRegisto(${index})">X</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+                    var card = document.createElement('div');
+                    card.className = 'entry-card';
+                    card.innerHTML = 
+                        '<div class="entry-header">' +
+                            '<div class="header-info">' +
+                                '<span class="entry-date">' + reg.data + '</span>' +
+                                '<span class="entry-price">' + valorPagoStr + ' (' + precoLitro + ')</span>' +
+                            '</div>' +
+                            '<button class="btn-del-icon" onclick="apagar(' + i + ')" title="Apagar">🗑️</button>' +
+                        '</div>' +
+                        '<div class="entry-details">' +
+                            '<div class="detail-item"><span>Quilómetros:</span>' + Number(reg.kms).toLocaleString() + ' km</div>' +
+                            '<div class="detail-item"><span>Litros:</span>' + reg.litros + ' L</div>' +
+                            '<div class="detail-item"><span>Percorrido:</span><span class="val-dist">' + distancia + '</span></div>' +
+                            '<div class="detail-item"><span>Média:</span><span class="val-media">' + media + '</span></div>' +
+                        '</div>';
+                    
+                    lista.appendChild(card);
+                }
+            }
 
-    (async () => {
-      const registos = await carregarRegistos();
-      desenharTabela(registos);
-    })();
-  </script>
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var novo = {
+                    data: inputData.value,
+                    kms: parseFloat(document.getElementById('kms').value),
+                    litros: parseFloat(document.getElementById('litros').value),
+                    valor: parseFloat(document.getElementById('valor').value)
+                };
+                registos.push(novo);
+                guardar();
+                form.reset();
+                inputData.valueAsDate = new Date();
+            });
+
+            window.apagar = function(index) {
+                if (confirm('Apagar este registo?')) {
+                    registos.splice(index, 1);
+                    guardar();
+                }
+            };
+
+            carregar();
+        })();
+    </script>
 </body>
 </html>
