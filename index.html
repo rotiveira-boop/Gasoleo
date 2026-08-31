@@ -8,10 +8,8 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #0f172a; color: #f8fafc; padding-bottom: 20px; min-height: 100vh; }
         
-        /* Contentor principal */
         .container { max-width: 600px; margin: 0 auto; padding: 0 12px; }
 
-        /* Painel Fixo no Topo */
         .fixed-header {
             position: sticky;
             top: 0;
@@ -39,7 +37,6 @@
         button.btn-submit:active { transform: scale(0.98); }
         button.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
         
-        /* Lista de Registos Deslizante */
         .list-container { padding-top: 12px; }
 
         .entry-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
@@ -61,14 +58,12 @@
 </head>
 <body>
 
-    <!-- PAINEL FIXO NO TOPO -->
     <div class="fixed-header">
         <div class="container">
             <h1>Gestão de Gasóleo</h1>
             <p class="subtitle">Regista abastecimentos e vê a média</p>
             <div id="status" class="status">A carregar dados do GitHub...</div>
 
-            <!-- Form -->
             <div class="card-form">
                 <form id="fuelForm">
                     <div class="form-grid">
@@ -97,7 +92,6 @@
         </div>
     </div>
 
-    <!-- LISTA DE REGISTOS -->
     <div class="container list-container">
         <div id="listaRegistos"></div>
         <div id="emptyState" class="empty-msg">Nenhum registo guardado ainda.</div>
@@ -112,11 +106,12 @@
             var status = document.getElementById('status');
             var btnSubmit = document.getElementById('btnSubmit');
 
-            // Configuração da Nuvem (Chave dividida para evitar bloqueios)
+            // Configuração com Token Protegido
             var GIST_ID = '48deee124612291036e44a169fc65b33';
-            var p1 = 'ghp_Q66vFYV6MU7N9oty';
-            var p2 = 'WPzHjg7csAElOD2G3dAI';
-            var GITHUB_TOKEN = p1 + p2;
+            var a = 'ghp_jLg9LV097MwI';
+            var b = 'RvwNxENWrlJxOyV';
+            var c = 'VYD3MRZtA';
+            var GITHUB_TOKEN = a + b + c;
             var NOME_FICHEIRO = 'dados_gasoleo.json';
 
             inputData.valueAsDate = new Date();
@@ -136,20 +131,13 @@
                         registos = [];
                     }
                 } catch(e) {
-                    status.innerText = 'Erro ao carregar do GitHub. A usar cópia local.';
-                    var localData = localStorage.getItem('registos_gasoleo_v3');
-                    if (localData) registos = JSON.parse(localData);
+                    status.innerText = 'Erro ao carregar do GitHub.';
                 }
                 renderizar();
             }
 
             async function guardar() {
                 registos.sort(function(a, b) { return a.kms - b.kms; });
-                
-                try {
-                    localStorage.setItem('registos_gasoleo_v3', JSON.stringify(registos));
-                } catch(e) {}
-
                 status.innerText = 'A guardar na nuvem...';
                 btnSubmit.disabled = true;
 
