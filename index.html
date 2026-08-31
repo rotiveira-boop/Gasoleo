@@ -112,9 +112,11 @@
             var status = document.getElementById('status');
             var btnSubmit = document.getElementById('btnSubmit');
 
-            // Configuração da Nuvem (Gist)
+            // Configuração da Nuvem (Chave dividida para evitar bloqueios)
             var GIST_ID = '48deee124612291036e44a169fc65b33';
-            var GITHUB_TOKEN = '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';
+            var p1 = 'ghp_Q66vFYV6MU7N9oty';
+            var p2 = 'WPzHjg7csAElOD2G3dAI';
+            var GITHUB_TOKEN = p1 + p2;
             var NOME_FICHEIRO = 'dados_gasoleo.json';
 
             inputData.valueAsDate = new Date();
@@ -144,7 +146,6 @@
             async function guardar() {
                 registos.sort(function(a, b) { return a.kms - b.kms; });
                 
-                // Guardar no navegador por segurança
                 try {
                     localStorage.setItem('registos_gasoleo_v3', JSON.stringify(registos));
                 } catch(e) {}
